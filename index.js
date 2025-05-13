@@ -9,13 +9,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
+
 mongoose
     .connect("mongodb://localhost:27017/StudentInformationSystem")
     .then(() => console.log("Connected to MongoDB"))
     .catch((err) => console.error("Error connecting to MongoDB:", err));
 
-// Fetch Students Route
+
 app.get("/fetchstudents", async (req, res) => {
     try {
         const students = await Student.find();
@@ -91,20 +91,25 @@ app.post("/signup", async (req, res) => {
     }
 
     try {
+        // Normalize email and userId
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedUserId = userId.trim();
+
         // Check if the email or userId already exists
-        const existingUser = await User.findOne({ $or: [{ email }, { userId }] });
+        const existingUser = await User.findOne({ $or: [{ email: normalizedEmail }, { userId: normalizedUserId }] });
+        console.log("Existing User Found:", existingUser);
         if (existingUser) {
             return res.status(400).json({ message: "Email or ID already exists." });
         }
 
-        // Create a new user with the plain-text password
+        // Create a new user
         const newUser = new User({
-            userId,
+            userId: normalizedUserId,
             firstName,
             lastName,
             middleName,
-            email,
-            password, // Store plain-text password
+            email: normalizedEmail,
+            password,
         });
 
         await newUser.save();
@@ -125,7 +130,7 @@ app.post("/login", async (req, res) => {
     }
 
     try {
-        // Find the user by email
+        
         const user = await User.findOne({ email });
         if (!user || user.password !== password) {
             return res.status(401).json({ message: "Invalid email or password." });
